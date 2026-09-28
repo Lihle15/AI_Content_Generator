@@ -1,0 +1,26 @@
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+
+# Node & React dependencies
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Environment variables & DB
+.env
+.env.local
+*.db
+
+# Editor configurations
+.vscode/
+.idea/
+.DS_Store

@@ -28,7 +28,9 @@ PLATFORM_GUIDANCE = {
 class ContentGenerator:
     def __init__(self, api_key: Optional[str] = None) -> None:
         self.api_key = api_key or os.getenv("OPENAI_API_KEY", "").strip()
-        self.client = OpenAI(api_key=self.api_key) if self.api_key else None
+        self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
+        base_url = os.getenv("OPENAI_BASE_URL", "").strip() or None
+        self.client = OpenAI(api_key=self.api_key, base_url=base_url) if self.api_key else None
 
     def generate(self, topic: str, content_type: str, tone: str, platform: str) -> str:
         if not self.client:
@@ -36,7 +38,7 @@ class ContentGenerator:
 
         prompt = self._build_prompt(topic, content_type, tone, platform)
         response = self.client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=self.model,
             messages=[
                 {
                     "role": "system",

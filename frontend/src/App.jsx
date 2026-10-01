@@ -1,4 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import {
+  Check,
+  Clock,
+  Copy,
+  Heart,
+  Loader2,
+  Moon,
+  Sparkles,
+  Sun,
+  Trash2,
+  WandSparkles,
+} from 'lucide-react'
 
 const CONTENT_TYPES = ['Social Post', 'Blog Outline', 'Email', 'Ad Copy']
 const TONES = ['Conversational', 'Bold', 'Professional', 'Witty']
@@ -8,11 +21,9 @@ const API_URL = 'http://localhost:8000/api/generate'
 
 function SelectorRow({ label, options, value, onChange }) {
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-      <span className="w-28 shrink-0 text-xs font-medium uppercase tracking-[0.18em] text-white/45">
-        {label}
-      </span>
-      <div className="flex flex-wrap gap-2">
+    <div className="selector-row">
+      <div className="selector-label">{label}</div>
+      <div className="selector-options">
         {options.map((option) => {
           const selected = option === value
           return (
@@ -20,11 +31,8 @@ function SelectorRow({ label, options, value, onChange }) {
               key={option}
               type="button"
               onClick={() => onChange(option)}
-              className={`rounded-full border px-3.5 py-1.5 text-sm transition ${
-                selected
-                  ? 'border-white/20 bg-white/15 text-white shadow-[0_0_20px_rgba(165,180,252,0.18)]'
-                  : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10 hover:text-white'
-              }`}
+              aria-pressed={selected}
+              className={`selector-pill ${selected ? 'selected' : ''}`}
             >
               {option}
             </button>
@@ -33,19 +41,6 @@ function SelectorRow({ label, options, value, onChange }) {
       </div>
     </div>
   )
-}
-
-function formatContent(text) {
-  return text.split('\n').map((line, index) => {
-    if (!line.trim()) {
-      return <div key={index} className="h-3" />
-    }
-    return (
-      <p key={index} className="leading-7 text-white/85">
-        {line}
-      </p>
-    )
-  })
 }
 
 export default function App() {
@@ -57,8 +52,30 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
+  const [history, setHistory] = useState(() => {
+    try {
+      const savedHistory = JSON.parse(localStorage.getItem('forgeai-history') || '[]')
+      return Array.isArray(savedHistory) ? savedHistory.slice(0, 50) : []
+    } catch {
+      return []
+    }
+  })
+  const [theme, setTheme] = useState(() => {
+    const savedTheme = localStorage.getItem('forgeai-theme')
+    if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  })
 
   const canGenerate = useMemo(() => topic.trim().length > 0 && !loading, [topic, loading])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    localStorage.setItem('forgeai-theme', theme)
+  }, [theme])
+
+  useEffect(() => {
+    localStorage.setItem('forgeai-history', JSON.stringify(history.slice(0, 50)))
+  }, [history])
 
   async function handleGenerate(event) {
     event.preventDefault()
@@ -88,7 +105,20 @@ export default function App() {
       }
 
       const data = await response.json()
-      setContent(data.content || '')
+      const generatedContent = data.content || ''
+      setContent(generatedContent)
+      setHistory((currentHistory) => [
+        {
+          id: Date.now(),
+          topic: topic.trim(),
+          contentType,
+          tone,
+          platform,
+          content: generatedContent,
+          createdAt: new Date().toISOString(),
+        },
+        ...currentHistory,
+      ].slice(0, 50))
     } catch {
       setError('Unable to generate content right now. Please try again.')
     } finally {
@@ -103,92 +133,189 @@ export default function App() {
     window.setTimeout(() => setCopied(false), 1600)
   }
 
-  return (
-    <div className="relative min-h-screen overflow-hidden bg-[#05070c] text-white">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="orb absolute -left-24 top-[-8%] h-[28rem] w-[28rem] rounded-full bg-indigo-600/25 blur-[110px]" />
-        <div className="orb absolute right-[-8%] top-10 h-[24rem] w-[24rem] rounded-full bg-fuchsia-500/20 blur-[120px] [animation-delay:-4s]" />
-        <div className="absolute bottom-[-20%] left-1/3 h-[22rem] w-[22rem] rounded-full bg-cyan-500/10 blur-[100px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_42%)]" />
-      </div>
+  function loadHistoryItem(item) {
+    setContent(item.content)
+    setTopic(item.topic)
+    setContentType(item.contentType)
+    setTone(item.tone)
+    setPlatform(item.platform)
+    setError('')
+  }
 
-      <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
-        <div className="text-sm font-semibold tracking-[0.28em] text-white/70">LUMINA</div>
-        <div className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs uppercase tracking-[0.2em] text-white/50 backdrop-blur-md">
-          Content Studio
+  function deleteHistoryItem(id) {
+    setHistory((currentHistory) => currentHistory.filter((item) => item.id !== id))
+  }
+
+  function clearHistory() {
+    if (window.confirm('Clear all saved generations?')) setHistory([])
+  }
+
+  function formatDate(value) {
+    return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(value))
+  }
+
+  return (
+    <div className="app-shell">
+      <div className="background-glow background-glow-one" aria-hidden="true" />
+      <div className="background-glow background-glow-two" aria-hidden="true" />
+
+      <header className="topbar">
+        <div className="brand-wrap">
+          <Heart className="brand-mark" size={19} strokeWidth={2.2} aria-hidden="true" />
+          <span className="brand-name">LOPE-LEE</span>
+        </div>
+        <div className="topbar-actions">
+          <div className="brand-badge">AI CONTENT STUDIO</div>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+          >
+            {theme === 'light' ? <Moon size={17} /> : <Sun size={17} />}
+          </button>
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-5xl flex-col px-6 pb-20 pt-8">
-        <section className="mb-10 text-center">
-          <p className="mb-4 text-xs uppercase tracking-[0.35em] text-indigo-200/70">Creative generation</p>
-          <h1 className="bg-gradient-to-b from-white to-white/70 bg-clip-text text-4xl font-semibold tracking-tight text-transparent sm:text-6xl">
-            AI Content Generator
+      <main className="main-layout">
+        <section className="hero-section">
+          <p className="eyebrow">AI CONTENT STUDIO</p>
+          <h1>
+            Create content that
+            <span>gets remembered.</span>
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-base text-white/55 sm:text-lg">
-            Generate high-converting social posts, blog outlines, and ad copy in seconds
+          <p className="subtitle">
+            Describe what you need, choose your style, and LOPE-LEE will create polished content in seconds.
           </p>
         </section>
 
-        <form
-          onSubmit={handleGenerate}
-          className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-[0_20px_80px_rgba(0,0,0,0.35)]"
-        >
-          <label htmlFor="topic" className="mb-3 block text-sm font-medium text-white/70">
-            Describe what you want to create
-          </label>
-          <textarea
-            id="topic"
-            rows={5}
-            value={topic}
-            onChange={(event) => setTopic(event.target.value)}
-            placeholder="Launch campaign for a premium skincare line targeting first-time buyers"
-            className="w-full resize-none rounded-xl border border-white/10 bg-black/20 px-4 py-4 text-base text-white outline-none placeholder:text-white/30 focus:border-indigo-300/40"
-          />
+        <div className="studio-layout">
+          <div className="studio-compose">
+            <form onSubmit={handleGenerate} className="generator-panel">
+              <div className="panel-section">
+                <SelectorRow
+                  label="CONTENT TYPE"
+                  options={CONTENT_TYPES}
+                  value={contentType}
+                  onChange={setContentType}
+                />
+              </div>
 
-          <div className="mt-6 space-y-4">
-            <SelectorRow
-              label="Content Type"
-              options={CONTENT_TYPES}
-              value={contentType}
-              onChange={setContentType}
-            />
-            <SelectorRow label="Tone" options={TONES} value={tone} onChange={setTone} />
-            <SelectorRow label="Platform" options={PLATFORMS} value={platform} onChange={setPlatform} />
+              <div className="panel-section">
+                <div className="section-title">TOPIC</div>
+                <label htmlFor="topic" className="sr-only">
+                  Topic
+                </label>
+                <textarea
+                  id="topic"
+                  rows={5}
+                  value={topic}
+                  onChange={(event) => setTopic(event.target.value)}
+                  placeholder="Describe what you want ForgeAI to create..."
+                  className="prompt-input"
+                />
+              </div>
+
+              <div className="panel-section">
+                <SelectorRow label="TONE" options={TONES} value={tone} onChange={setTone} />
+              </div>
+
+              <div className="panel-section">
+                <SelectorRow label="PLATFORM" options={PLATFORMS} value={platform} onChange={setPlatform} />
+              </div>
+
+              <div className="generator-actions">
+                <button
+                  type="submit"
+                  disabled={!canGenerate}
+                  className={`primary-button ${loading ? 'loading' : ''}`}
+                >
+                  {loading ? <Loader2 className="spin" size={17} /> : <WandSparkles size={17} />}
+                  {loading ? 'Generating...' : 'Generate Content'}
+                </button>
+              </div>
+            </form>
+
+            {error ? <p className="error-message">{error}</p> : null}
           </div>
 
-          <div className="mt-6 flex justify-end">
-            <button
-              type="submit"
-              disabled={!canGenerate}
-              className={`rounded-full bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-cyan-400 px-6 py-3 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                loading ? 'glow-loading' : 'hover:brightness-110'
-              }`}
-            >
-              {loading ? 'Generating...' : 'Generate Content'}
-            </button>
-          </div>
-        </form>
-
-        {error ? (
-          <p className="mt-4 text-center text-sm text-rose-300/90">{error}</p>
-        ) : null}
-
-        {content ? (
-          <section className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-md shadow-[0_20px_80px_rgba(0,0,0,0.28)]">
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <h2 className="text-sm font-medium uppercase tracking-[0.22em] text-white/50">Preview</h2>
+          <section className="preview-panel">
+            <div className="preview-header">
+              <h2>THE PIECE</h2>
               <button
                 type="button"
                 onClick={handleCopy}
-                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10"
+                disabled={!content}
+                className="secondary-button"
               >
+                {copied ? <Check size={16} /> : <Copy size={16} />}
                 {copied ? 'Copied' : 'Copy to Clipboard'}
               </button>
             </div>
-            <div className="rounded-xl border border-white/8 bg-black/25 p-5">{formatContent(content)}</div>
+
+            <div className="preview-content">
+              {loading ? (
+                <div className="loading-state" aria-label="Generating content">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              ) : content ? (
+                <div className="markdown-body"><ReactMarkdown>{content}</ReactMarkdown></div>
+              ) : (
+                <div className="empty-state">
+                  <div className="empty-icon" aria-hidden="true"><Sparkles size={20} /></div>
+                  <p className="empty-label">Your generated content will appear here.</p>
+                  <p className="empty-helper">Fill in the topic on the left, then let ForgeAI take over.</p>
+                </div>
+              )}
+            </div>
           </section>
-        ) : null}
+        </div>
+
+        <section className="history-section">
+          <div className="history-header">
+            <div>
+              <p className="eyebrow history-eyebrow"><Clock size={14} /> HISTORY</p>
+              <h2>Your recent pieces</h2>
+            </div>
+            {history.length > 0 ? (
+              <button type="button" className="text-button" onClick={clearHistory}>Clear all</button>
+            ) : null}
+          </div>
+          {history.length > 0 ? (
+            <div className="history-list">
+              {history.map((item) => (
+                <article key={item.id} className="history-item">
+                  <button type="button" className="history-main" onClick={() => loadHistoryItem(item)}>
+                    <div className="history-item-topline">
+                      <span className="history-topic">{item.topic}</span>
+                    </div>
+                    <div className="history-pills">
+                      <span>{item.contentType}</span><span>{item.tone}</span><span>{item.platform}</span>
+                    </div>
+                    <p>{item.content}</p>
+                  </button>
+                  <div className="history-actions">
+                    <span className="history-date">{formatDate(item.createdAt)}</span>
+                    <button
+                      type="button"
+                      className="icon-button history-delete"
+                      onClick={() => deleteHistoryItem(item.id)}
+                      aria-label={`Delete ${item.topic}`}
+                      title="Delete generation"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="history-empty"><Clock size={19} /><span>Your saved generations will appear here.</span></div>
+          )}
+        </section>
       </main>
     </div>
   )

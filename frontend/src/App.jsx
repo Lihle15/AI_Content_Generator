@@ -180,7 +180,6 @@ export default function App() {
 
       <main className="main-layout">
         <section className="hero-section">
-          <p className="eyebrow">AI CONTENT STUDIO</p>
           <h1>
             Create content that
             <span>gets remembered.</span>

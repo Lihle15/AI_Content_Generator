@@ -211,7 +211,7 @@ export default function App() {
                   rows={5}
                   value={topic}
                   onChange={(event) => setTopic(event.target.value)}
-                  placeholder="Describe what you want ForgeAI to create..."
+                  placeholder="Describe what you want LOPE-LEE to create..."
                   className="prompt-input"
                 />
               </div>
@@ -266,7 +266,7 @@ export default function App() {
                 <div className="empty-state">
                   <div className="empty-icon" aria-hidden="true"><Sparkles size={20} /></div>
                   <p className="empty-label">Your generated content will appear here.</p>
-                  <p className="empty-helper">Fill in the topic on the left, then let ForgeAI take over.</p>
+                  <p className="empty-helper">Fill in the topic on the left, then let LOPE-LEE take over.</p>
                 </div>
               )}
             </div>

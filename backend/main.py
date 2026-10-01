@@ -10,7 +10,7 @@ from generator import ContentGenerator
 load_dotenv(Path(__file__).resolve().parent / ".env")
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-app = FastAPI(title="AI Content Generator")
+app = FastAPI(title="LOPE-LEE | AI Content Studio")
 
 app.add_middleware(
     CORSMiddleware,

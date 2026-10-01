@@ -31,7 +31,7 @@ The generation workflow, error handling, loading state, copy behavior, and API c
 ```text
 AI_Content_Generator/
 ├── backend/
-│   ├── .env                 # Local secrets and provider configuration; do not commit
+│   ├── .env                
 │   ├── generator.py         # Prompt construction and AI/mock generation
 │   ├── main.py              # FastAPI app, CORS, validation, and API route
 │   └── requirements.txt     # Python dependencies

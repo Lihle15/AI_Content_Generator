@@ -1,127 +1,141 @@
 # LOPE-LEE | AI Content Studio
 
-LOPE-LEE is a React and FastAPI content-generation studio for creating polished social posts, blog outlines, emails, and ad copy. Choose a content type, tone, and platform, then send a topic to the AI generation API.
+A full-stack web app that generates social posts, emails, blog outlines and ad copy with AI. Pick a content type, tone and platform, enter a topic, and get ready-to-use copy in seconds.
 
 ## Features
 
-- Warm editorial Rosee Studio-inspired interface with responsive light and dark themes.
-- LOPE-LEE branding with a Lucide heart mark and a single AI Content Studio badge.
-- Content generation controls for type, tone, platform, and topic.
-- Markdown-rendered generated content with headings, emphasis, and visible ordered or unordered lists.
-- Copy-to-clipboard support that preserves the raw generated text.
-- Loading skeletons, error feedback, and accessible focus states.
-- Persistent generation history stored locally in the browser.
-- History entries can be reopened, deleted individually, or cleared with confirmation.
-- History cards keep their date and delete control contained and aligned inside each card.
-- Theme preference remembers the user's choice and defaults to the system preference.
-- Warm, readable dark-mode selected pills and history pills with responsive card stacking.
-- Mock generation fallback when no API key is configured.
-
-The generation workflow, error handling, loading state, copy behavior, and API contract were preserved while the frontend was redesigned. The duplicate hero eyebrow was removed so the `AI CONTENT STUDIO` label appears only in the top-right badge.
+- **Controlled generation:** choose content type, tone, platform and topic
+- **Formatted output:** results render as Markdown (headings, emphasis, lists), and the copy button keeps the raw text
+- **Generation history:** the latest 50 results are saved in the browser, and each one can be reopened, deleted or cleared
+- **Light and dark themes:** follows the system preference and remembers your choice
+- **Responsive UI** with loading skeletons, error feedback and accessible focus states
+- **Mock mode:** runs without an API key and returns sample content, so the app can be tried locally straight away
 
 ## Tech Stack
 
-- **Backend:** Python 3.10+, FastAPI, Uvicorn, Pydantic, OpenAI Python SDK, python-dotenv
-- **Frontend:** React, Vite, Tailwind CSS, React Markdown, Lucide React
-- **AI provider:** OpenAI-compatible API configuration, including OpenRouter
-- **Fonts:** Inter for interface text and Cormorant Garamond for editorial headings
+| Layer | Technologies |
+|---|---|
+| Frontend | React, Vite, Tailwind CSS, React Markdown, Lucide React |
+| Backend | Python 3.10+, FastAPI, Uvicorn, Pydantic, python-dotenv |
+| AI | OpenAI Python SDK with any OpenAI-compatible provider (tested with OpenRouter) |
 
 ## Project Structure
 
 ```text
 AI_Content_Generator/
 ├── backend/
-│   ├── .env                
 │   ├── generator.py         # Prompt construction and AI/mock generation
-│   ├── main.py              # FastAPI app, CORS, validation, and API route
+│   ├── main.py              # FastAPI app, CORS, validation and API route
 │   └── requirements.txt     # Python dependencies
 ├── frontend/
-│   ├── index.html           # Page metadata, title, and font imports
-│   ├── package.json         # Frontend scripts and dependencies
+│   ├── index.html
+│   ├── package.json
 │   └── src/
-│       ├── App.jsx          # Main application and interaction logic
-│       ├── index.css        # Theme, layout, responsive, and component styles
+│       ├── App.jsx          # Main UI and interaction logic
+│       ├── index.css        # Theme, layout and component styles
 │       └── main.jsx         # React entry point
+├── .gitignore
 └── README.md
 ```
 
-## Configuration
+## Getting Started
 
-Create `backend/.env` for a real provider:
+### Prerequisites
 
-```dotenv
-OPENAI_API_KEY=your_api_key
-OPENAI_BASE_URL=https://openrouter.ai/api/v1
-OPENAI_MODEL=openrouter/free
-```
+- Python 3.10+
+- Node.js 18+
 
-`OPENAI_BASE_URL` and `OPENAI_MODEL` are optional. Without an API key, the backend returns mock content so the application can still be run locally.
+### 1. Backend
 
-Never commit `.env` files or API keys. Rotate any key that has been exposed publicly.
+From the project root, create and activate a virtual environment, then install the dependencies.
 
-The frontend stores browser-only preferences under these local-storage keys:
-
-- `forgeai-history` for the latest 50 successful generations
-- `forgeai-theme` for the selected light or dark theme
-
-## Run Locally
-
-From the project root, create and activate the virtual environment, then install backend dependencies:
+Windows (PowerShell):
 
 ```powershell
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r backend\requirements.txt
 ```
 
-Start the backend in one terminal:
+macOS / Linux:
 
-```powershell
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements.txt
+```
+
+Start the API:
+
+```bash
 cd backend
 python -m uvicorn main:app --reload --port 8000
 ```
 
-Start the frontend in another terminal:
+### 2. Frontend
 
-```powershell
+In a second terminal:
+
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173. The frontend calls `POST http://localhost:8000/api/generate` with:
+Open http://localhost:5173.
+
+### 3. Connect an AI provider (optional)
+
+Without an API key the app returns mock content. To use a real model, create `backend/.env`:
+
+```dotenv
+OPENAI_API_KEY=your_api_key
+OPENAI_BASE_URL=https://openrouter.ai/api/v1   # optional
+OPENAI_MODEL=openrouter/free                   # optional
+```
+
+> **Security:** `.env` is listed in `.gitignore` and must never be committed. The frontend never handles the API key, because the backend reads it from the environment.
+
+## API
+
+`POST /api/generate`
+
+Request:
 
 ```json
 {
-    "topic": "A launch campaign for a premium skincare line",
-    "content_type": "Social Post",
-    "tone": "Conversational",
-    "platform": "Instagram"
+  "topic": "A launch campaign for a premium skincare line",
+  "content_type": "Social Post",
+  "tone": "Conversational",
+  "platform": "Instagram"
 }
 ```
 
-The API returns:
+Response:
 
 ```json
 {
-    "content": "Generated content"
+  "content": "Generated content"
 }
 ```
 
-The backend accepts both `localhost:5173` and `127.0.0.1:5173` through CORS. The frontend does not send API keys directly; provider credentials are read by the backend from the environment.
+CORS is enabled for `localhost:5173` and `127.0.0.1:5173`.
 
-## Validation
+## Quality Checks
 
-```powershell
+```bash
 cd frontend
 npm run lint
 npm run build
 ```
 
-## Git History
+## What I Learned
 
-The current feature work is represented by these commits on `main`:
+- Designing a small REST API with FastAPI and validating input with Pydantic
+- Connecting a React frontend to a Python backend
+- Prompt construction for different content types, tones and platforms
+- Keeping API keys server-side, with a mock fallback for local development
 
-```text
-ef011b3 fix: remove duplicate hero eyebrow
-9d255ba feat: complete LOPE-LEE AI content studio
-```
+## Author
+
+Built by [Thembelihle (Lihle) Molope](https://github.com/Lihle15) as part of the CAPACITI AI Bootcamp.
